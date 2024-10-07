@@ -29,7 +29,7 @@ vec3 paletteBlueMagenta( float t ) {
 } 
 
 int simpleHash(int x) {
-    return x * 1105245 + 12345;
+    return x * 1108675245 + 12345;
 }
 
 struct Ray{
