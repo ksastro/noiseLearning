@@ -4,8 +4,12 @@ precision mediump float;
 
 uniform vec2 u_resolution;
 uniform float u_time;
-const float ITERATION_LIMIT = 101.;
-const float BACKGROUNG_ID = 0.;
+const float ITERATION_LIMIT = 11001.;
+const float ID_BACKGROUND = 0.;
+const float ID_GROUND = -1.;
+const float ID_SPHERE = 1.;
+const float ID_PLANE = 2.;
+const float ID_BOX = 3.;
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
@@ -48,15 +52,15 @@ float sdBox( vec3 position, vec3 size )
 
 vec3 GetColor(vec3 position, float surfaceId){
     vec3 color = vec3(0.4667, 0.0, 0.7137);
-    if (surfaceId == 2.) {
+    if (surfaceId == ID_PLANE) {
         
         color = vec3(0.0784, 0.102, 0.3373);
         }
-    if (surfaceId == 1.) {
+    if (surfaceId == ID_SPHERE) {
         color  = paletteBlueMagenta(1./50.);
         //color = vec3(0.8353, 0.0314, 0.502);
         }
-    if (surfaceId == 3.) {
+    if (surfaceId == ID_BOX) {
         color  = paletteBlueMagenta(1./50.);
         color = vec3(0.8353, 0.0314, 0.502);
         }
@@ -81,11 +85,11 @@ vec2 map (vec3 position){
     vec2 result;
     vec3 rotatedPosition = vec3(rotate2d(.5*u_time)*position.xy,position.z);
     vec3 spherePosition = Paving(rotatedPosition + vec3(5.0,5.+1.5*u_time,5.-3.*u_time)) - vec3(0.,0.,0.);
-    vec2 sphere = vec2(sdSphere(spherePosition, 1.), 1.);
+    vec2 sphere = vec2(sdSphere(spherePosition, 1.), ID_SPHERE);
     vec3 planePosition = (position - vec3(0.,-15.,0.));
-    vec2 plane = vec2(sdPlane(planePosition), 2.);
+    vec2 plane = vec2(sdPlane(planePosition), ID_PLANE);
     vec3 boxPosition = Paving (vec3(position + vec3(5.+cos(2.*u_time),5.+sin(2.*u_time), 5.)));
-    vec2 box = vec2(sdBox(boxPosition,vec3(1.)),3.);
+    vec2 box = vec2(sdBox(boxPosition,vec3(1.)),ID_BOX);
     result = sphere;
     //result = plane;
     result = AddObjects(result, sphere);
@@ -123,7 +127,7 @@ void main()
     ray.direction = normalize(vec3(uv,1.));
     ray.length = 0.;
     ray.position = ray.origin;
-    float surfaceId = BACKGROUNG_ID;
+    float surfaceId = 0.;
 
     for(float i = 0.; i < ITERATION_LIMIT; i++){
         vec2 d = map(ray.position);
