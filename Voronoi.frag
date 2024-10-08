@@ -29,8 +29,8 @@ void main()
     uv *= 5.;
     vec2 pavedUv = fract(uv);
     vec3 voronoi = voronoi(uv);
-    col += vec3(1.- 1. * step(0.05,voronoi.z));
-    col.r += (1.- 1. * step(0.05,fract(pavedUv.x)));
-    col.r += (1.- 1. * step(0.05,fract(pavedUv.y)));
+    col += vec3(1. -voronoi.z);
+    //col.r += (1.- 1. * step(0.05,fract(pavedUv.x)));
+    //col.r += (1.- 1. * step(0.05,fract(pavedUv.y)));
     gl_FragColor = vec4(col, 1.);
 }
