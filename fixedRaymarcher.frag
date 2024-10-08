@@ -116,12 +116,12 @@ vec2 sdfRaymarch(Ray ray){      //.x is ray length, .y is surfaceID
     return (result);
 }
 
-/*vec2 hash2d(vec2 st) { // st is our pair of variables
+/*vec2 hash2dUnitVector(vec2 st) { // st is our pair of variables
     float hashAngle = fract(sin(dot(st.xy, vec2(12.9898,78.233)))) * 43758.5453123;
     return (rotate2d (hashAngle) * vec2(1.,0.));
 }*/
 
-vec2 hash2d(vec2 gridCorner){
+vec2 hash2dUnitVector(vec2 gridCorner){
     float hashAngle = 2.*3.14*fract(6421.234*sin(19512.35* gridCorner.x * gridCorner.x + 2389.) 
     + 138.283*cos(49824.+167840.17 * gridCorner.y *gridCorner.x) 
     + 1928. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
@@ -138,7 +138,7 @@ vec2 hash2d(vec2 gridCorner){
 
 float singleCornerNoise2d (vec2 gridCorner, vec2 point){      
     float res;
-    res = dot(gridCorner - point, hash2d(gridCorner));
+    res = dot(gridCorner - point, hash2dUnitVector(gridCorner));
     res = atan(res)* 2./3.1415;     //map to (-1;1)
     //res = atan(res) ;             //map to (-pi;pi)
     //res = (res + 1.)*.5;            //map to (0;1)
