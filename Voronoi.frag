@@ -16,9 +16,21 @@ vec2 hash2d(vec2 gridCorner){
 }
 
 vec3 voronoi(vec2 position){ //.xy is closest voronoi gridcell, .z is the distance to it
-    vec2 cellID = floor(position);
-    float dist = length(position - (cellID + hash2d(cellID)));
-    return vec3(cellID,dist);
+    vec2 cellOrigin = floor(position); //cell where position is
+    vec2 positionRelative = fract(position);
+    vec2 cellOffset;    //Offset to the cell that is currently being calculated
+    vec2 pointOffset;   //Offset to the voronoi point in current cell
+    float dist;
+    vec3 result = vec3 (0.,0.,1000.);
+    for(float x = -2.; x <= 1. ; x++){
+        for(float y = -2.; y <= 1.; y++){
+            cellOffset = vec2(x,y);
+            pointOffset = cellOffset + hash2d(cellOffset + cellOrigin);
+            dist = length(positionRelative - pointOffset);
+            if (dist < result.z) (result = vec3(cellOffset,dist));
+        }
+    }
+    return result;
 }
 
 void main()
