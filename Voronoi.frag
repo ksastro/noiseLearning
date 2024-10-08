@@ -5,11 +5,29 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 
+vec3 paletteRainbow( float t ) {
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
+    vec3 d = vec3(0.0,0.33,0.67);
+
+    return a + b*cos( 6.28318*(c*t+d) );
+}
+
+vec3 paletteBlueMagenta( float t ) {
+    vec3 a = vec3(0.6, 0., 0.8);
+    vec3 b = vec3(0.4, 0., 0.2);
+    vec3 c = vec3(.5, .0, .5);
+    vec3 d = vec3(.5,0.,0.);
+
+    return a + b*cos( 6.28318*(c*t+d) );
+} 
+
 vec2 hash2d(vec2 gridCorner){
     float x = fract(6421.234*sin(19512.35* gridCorner.x * gridCorner.x + 2389.) 
-    + 138.283*cos(49824.+167840.17 * gridCorner.y *gridCorner.x) 
+    + 138.283*cos(49824.+16940.17 * gridCorner.y *gridCorner.x) 
     + 1928. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
-    float y = fract(6341.234*sin(1932.35* gridCorner.x * gridCorner.x + 2389.) 
+    float y = fract(6341.234*sin(1832.35* gridCorner.x * gridCorner.x + 2389.) 
     + 178.243*cos(46124.+1360.17 * gridCorner.y *gridCorner.x) 
     + 1298. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
     return (vec2 (x,y));
@@ -41,7 +59,13 @@ void main()
     uv *= 5.;
     vec2 pavedUv = fract(uv);
     vec3 voronoi = voronoi(uv);
-    col += vec3(1. -voronoi.z);
+    float dist;
+    //dist = 0.3*exp(-voronoi.z * voronoi.z);
+    dist = voronoi.z;
+    //dist = sin(1. * 3.1415 * dist);
+    //col = paletteBlueMagenta(12.*dist);
+    col = vec3(0.,dist,dist+0.5);
+    //col += vec3(1. - voronoi.z);
     //col.r += (1.- 1. * step(0.05,fract(pavedUv.x)));
     //col.r += (1.- 1. * step(0.05,fract(pavedUv.y)));
     gl_FragColor = vec4(col, 1.);

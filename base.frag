@@ -5,6 +5,24 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 
+vec3 paletteRainbow( float t ) {
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
+    vec3 d = vec3(0.0,0.33,0.67);
+
+    return a + b*cos( 6.28318*(c*t+d) );
+}
+
+vec3 paletteBlueMagenta( float t ) {
+    vec3 a = vec3(0.6, 0., 0.8);
+    vec3 b = vec3(0.4, 0., 0.2);
+    vec3 c = vec3(.5, .0, .5);
+    vec3 d = vec3(.5,0.,0.);
+
+    return a + b*cos( 6.28318*(c*t+d) );
+} 
+
 struct Ray{
     vec3 origin;
     vec3 direction;
