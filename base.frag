@@ -43,6 +43,14 @@ uint hashUint (in uint seed){ //murmur type of hash from https://t.ly/bKdP7
     return seed;
 }
 
+uvec2 hashUint(in uvec2 seed){
+    return uvec2(hashUint(seed.x),hashUint(seed.y));
+}
+
+uvec3 hashUint(in uvec3 seed){
+    return uvec3(hashUint(seed.x),hashUint(seed.y),hashUint(seed.z));
+}
+
 float hashFloat(in float seed){
     uint hash = hashUint(uint(seed + PATTERN_SHIFT.x)); 
     return float(hash) / float(0xFFFFFFFFU);
@@ -56,10 +64,8 @@ float hashFloat2d(in vec2 seed){
 
 vec2 hashVec2(in vec2 seed){
     uvec2 uintSeed = uvec2(seed + PATTERN_SHIFT.xy);
-    uvec2 hashOnce = uvec2(hashUint(uintSeed.x), hashUint(uintSeed.y));
-    vec2 hashTwice;
-    hashTwice.x = float(hashUint(hashOnce.x + uintSeed.y));
-    hashTwice.y = float(hashUint(hashOnce.y + uintSeed.x));
+    uvec2 hashOnce = hashUint(uintSeed);
+    vec2 hashTwice = vec2(hashUint(hashOnce + uintSeed.yx));
     return hashTwice / float(0xffffffffu);
 }
 
@@ -75,15 +81,9 @@ vec2 hashVec2Unit(in vec2 seed){
 
 vec3 hashVec3(in vec3 seed){
     uvec3 uintSeed = uvec3(seed + PATTERN_SHIFT.xyz);
-    uvec3 hashOnce = uvec3(hashUint(uintSeed.x), hashUint(uintSeed.y), hashUint(uintSeed.z));
-    uvec3 hashTwice;
-    hashTwice.x = hashUint(hashOnce.x + uintSeed.y);
-    hashTwice.y = hashUint(hashOnce.y + uintSeed.z);
-    hashTwice.z = hashUint(hashOnce.z + uintSeed.x);
-    vec3 hashTrice;
-    hashTwice.x = hashUint(hashTwice.x + uintSeed.z);
-    hashTwice.y = hashUint(hashTwice.y + uintSeed.x);
-    hashTwice.z = hashUint(hashTwice.z + uintSeed.y);
+    uvec3 hashOnce = hashUint(uintSeed);
+    uvec3 hashTwice = hashUint(hashOnce + uintSeed.yzx);
+    vec3 hashTrice = vec3(hashUint(hashTwice + uintSeed.zxy));
     return hashTrice / float(0xffffffffu);
 }
 
