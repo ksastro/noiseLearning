@@ -1,6 +1,9 @@
-#ifdef GL_ES
+#version 300 es
+//#ifdef GL_ES 
 precision mediump float;
-#endif
+//#endif
+
+
 
 uniform vec2 u_resolution;
 uniform float u_time;
@@ -70,10 +73,14 @@ float opSmoothIntersection( float d1, float d2, float k )
     float h = clamp( 0.5 - 0.5*(d2-d1)/k, 0.0, 1. );
     return mix( d2, d1, h ) + k*h*(1.-h);
 }
+
+out vec4 Color;
+
 void main()
 {
-    float t = u_time * 2.; //anim speed
-    vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/u_resolution.y;
+    //float t = u_time * 2.; //anim speed
+    //vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/u_resolution.y;
     vec3 col = vec3(0.,0.,.0);
-    gl_FragColor = vec4(col, 1.);
+    Color = vec4(col, 1.);
+    //return(vec4(col,1.));
 }
