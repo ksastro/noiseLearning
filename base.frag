@@ -5,7 +5,7 @@ uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
 
-const vec2 PATTERN_SHIFT = vec2(1252534.,943675.);
+const vec3 PATTERN_SHIFT = vec3(1252534.,943675.,715713.);
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
@@ -55,13 +55,12 @@ float hashFloat2d(in vec2 seed){
 }
 
 vec2 hashVec2(in vec2 seed){
-    uint X = uint(seed.x + PATTERN_SHIFT.x);
-    uint Y = uint(seed.y + PATTERN_SHIFT.y);
-    uint hashX = hashUint(X);
-    float hashXY = float(hashUint(hashX + Y));
-    uint hashY = hashUint(Y);
-    float hashYX = float(hashUint(hashY + X));
-    return vec2(hashXY, hashYX) / float(0xffffffffu);
+    uvec2 uintSeed = uvec2(seed + PATTERN_SHIFT.xy);
+    uvec2 hashOnce = uvec2(hashUint(uintSeed.x), hashUint(uintSeed.y));
+    vec2 hashTwice;
+    hashTwice.x = float(hashUint(hashOnce.x + uintSeed.y));
+    hashTwice.y = float(hashUint(hashOnce.y + uintSeed.x));
+    return hashTwice / float(0xffffffffu);
 }
 
 mat2 rotate2d(float _angle){
@@ -74,12 +73,19 @@ vec2 hashVec2Unit(in vec2 seed){
     return (rotate2d (hashAngle) * vec2(1.,0.));
 }
 
-/*vec2 hashVec2Unit(vec2 gridCorner){
-    float hashAngle = 2.*3.14*fract(6421.234*sin(19512.35* gridCorner.x * gridCorner.x + 2389.) 
-    + 138.283*cos(49824.+167840.17 * gridCorner.y *gridCorner.x) 
-    + 1928. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
-    return (rotate2d (hashAngle) * vec2(1.,0.));
-}*/
+vec3 hashVec3(in vec3 seed){
+    uvec3 uintSeed = uvec3(seed + PATTERN_SHIFT.xyz);
+    uvec3 hashOnce = uvec3(hashUint(uintSeed.x), hashUint(uintSeed.y), hashUint(uintSeed.z));
+    uvec3 hashTwice;
+    hashTwice.x = hashUint(hashOnce.x + uintSeed.y);
+    hashTwice.y = hashUint(hashOnce.y + uintSeed.z);
+    hashTwice.z = hashUint(hashOnce.z + uintSeed.x);
+    vec3 hashTrice;
+    hashTwice.x = hashUint(hashTwice.x + uintSeed.z);
+    hashTwice.y = hashUint(hashTwice.y + uintSeed.x);
+    hashTwice.z = hashUint(hashTwice.z + uintSeed.y);
+    return hashTrice / float(0xffffffffu);
+}
 
 float opSmoothUnion( float d1, float d2, float k )
 {

@@ -4,7 +4,7 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
-const vec2 PATTERN_SHIFT = vec2(1252534.,943675.);
+const vec3 PATTERN_SHIFT = vec3(1252534.,943675.,715713.);
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
