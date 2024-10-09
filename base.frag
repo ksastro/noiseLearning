@@ -5,6 +5,8 @@ uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
 
+const vec2 PATTERN_SHIFT = vec2(1252534.,943675.);
+
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
     vec3 b = vec3(0.5, 0.5, 0.5);
@@ -41,10 +43,25 @@ uint hashUint (in uint seed){ //murmur type of hash from https://t.ly/bKdP7
     return seed;
 }
 
-float opSmoothUnion( float d1, float d2, float k )
-{
-    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1. );
-    return mix( d2, d1, h ) - k*h*(1.-h);
+float hashFloat(in float seed){
+    uint hash = hashUint(uint(seed + PATTERN_SHIFT.x)); 
+    return float(hash) / float(0xFFFFFFFFU);
+}
+
+float hashFloat2d(in vec2 seed){
+    uint hashX = hashUint(uint(seed.x + PATTERN_SHIFT.x));
+    uint hashXY = hashUint(hashX + uint(seed.y + PATTERN_SHIFT.y));
+    return float(hashXY) / float(0xFFFFFFFFU);
+}
+
+vec2 hashVec2(in vec2 seed){
+    uint X = uint(seed.x + PATTERN_SHIFT.x);
+    uint Y = uint(seed.y + PATTERN_SHIFT.y);
+    uint hashX = hashUint(X);
+    float hashXY = float(hashUint(hashX + Y));
+    uint hashY = hashUint(Y);
+    float hashYX = float(hashUint(hashY + X));
+    return vec2(hashXY, hashYX) / float(0xffffffffu);
 }
 
 mat2 rotate2d(float _angle){
@@ -52,11 +69,22 @@ mat2 rotate2d(float _angle){
                 sin(_angle),cos(_angle));
 }
 
-vec2 hash2dUnitVector(vec2 gridCorner){
+vec2 hashVec2Unit(in vec2 seed){
+    float hashAngle = 2.*3.1415*hashFloat2d(seed);
+    return (rotate2d (hashAngle) * vec2(1.,0.));
+}
+
+/*vec2 hashVec2Unit(vec2 gridCorner){
     float hashAngle = 2.*3.14*fract(6421.234*sin(19512.35* gridCorner.x * gridCorner.x + 2389.) 
     + 138.283*cos(49824.+167840.17 * gridCorner.y *gridCorner.x) 
     + 1928. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
     return (rotate2d (hashAngle) * vec2(1.,0.));
+}*/
+
+float opSmoothUnion( float d1, float d2, float k )
+{
+    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1. );
+    return mix( d2, d1, h ) - k*h*(1.-h);
 }
 
 float opSmoothSubtraction( float d1, float d2, float k )

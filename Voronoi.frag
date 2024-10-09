@@ -4,6 +4,7 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
+const vec2 PATTERN_SHIFT = vec2(1252534.,943675.);
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
@@ -23,7 +24,28 @@ vec3 paletteBlueMagenta( float t ) {
     return a + b*cos( 6.28318*(c*t+d) );
 } 
 
-vec2 hash2d(vec2 gridCorner){
+uint hashUint (in uint seed){ //murmur type of hash from https://t.ly/bKdP7
+    seed ^= seed >> 17;
+    seed *= 0xed5ad4bbU;
+    seed ^= seed >> 11;
+    seed *= 0xac4c1b51U;
+    seed ^= seed >> 15;
+    seed *= 0x31848babU;
+    seed ^= seed >> 14;
+    return seed;
+}
+
+vec2 hashVec2(in vec2 seed){
+    uint X = uint(seed.x + PATTERN_SHIFT.x);
+    uint Y = uint(seed.y + PATTERN_SHIFT.y);
+    uint hashX = hashUint(X);
+    float hashXY = float(hashUint(hashX + Y));
+    uint hashY = hashUint(Y);
+    float hashYX = float(hashUint(hashY + X));
+    return vec2(hashXY, hashYX) / float(0xffffffffu);
+}
+
+/*vec2 hashVec2(vec2 gridCorner){
     gridCorner.x*=5.;
     float x = fract(6421.234*sin(19512.35* gridCorner.x * gridCorner.x + 2389.) 
     + 138.283*cos(49824.+16940.17 * gridCorner.y *gridCorner.x) 
@@ -32,7 +54,7 @@ vec2 hash2d(vec2 gridCorner){
     + 178.243*cos(46124.+1360.17 * gridCorner.y *gridCorner.x) 
     + 1298. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
     return (vec2 (x,y));
-}
+}*/
 
 vec3 voronoi(vec2 position){ //.xy is closest voronoi gridcell, .z is the distance to it
     vec2 cellOrigin = floor(position); //cell where position is
@@ -44,7 +66,7 @@ vec3 voronoi(vec2 position){ //.xy is closest voronoi gridcell, .z is the distan
     for(float x = -2.; x <= 1. ; x++){
         for(float y = -2.; y <= 1.; y++){
             cellOffset = vec2(x,y);
-            pointOffset = cellOffset + hash2d(cellOffset + cellOrigin);
+            pointOffset = cellOffset + hashVec2(cellOffset + cellOrigin);
             dist = length(positionRelative - pointOffset);
             if (dist < result.z) (result = vec3(cellOffset,dist));
         }
