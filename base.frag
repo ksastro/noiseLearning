@@ -3,8 +3,6 @@
 precision mediump float;
 //#endif
 
-
-
 uniform vec2 u_resolution;
 uniform float u_time;
 
@@ -80,7 +78,7 @@ void main()
 {
     //float t = u_time * 2.; //anim speed
     //vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/u_resolution.y;
-    vec3 col = vec3(0.,0.,.0);
+    vec3 col = vec3(1.,0.,.0);
     Color = vec4(col, 1.);
     //return(vec4(col,1.));
 }
