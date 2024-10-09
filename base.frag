@@ -30,7 +30,16 @@ struct Ray{
     vec3 position;
 };
 
-
+uint hashUint (in uint seed){ //murmur type of hash from https://t.ly/bKdP7
+    seed ^= seed >> 17;
+    seed *= 0xed5ad4bbU;
+    seed ^= seed >> 11;
+    seed *= 0xac4c1b51U;
+    seed ^= seed >> 15;
+    seed *= 0x31848babU;
+    seed ^= seed >> 14;
+    return seed;
+}
 
 float opSmoothUnion( float d1, float d2, float k )
 {

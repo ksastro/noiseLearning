@@ -24,6 +24,7 @@ vec3 paletteBlueMagenta( float t ) {
 } 
 
 vec2 hash2d(vec2 gridCorner){
+    gridCorner.x*=5.;
     float x = fract(6421.234*sin(19512.35* gridCorner.x * gridCorner.x + 2389.) 
     + 138.283*cos(49824.+16940.17 * gridCorner.y *gridCorner.x) 
     + 1928. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
