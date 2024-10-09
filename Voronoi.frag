@@ -1,9 +1,9 @@
-#ifdef GL_ES
+#version 300 es
 precision mediump float;
-#endif
 
 uniform vec2 u_resolution;
 uniform float u_time;
+out vec4 Color;
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
@@ -69,5 +69,5 @@ void main()
     //col += vec3(1. - voronoi.z);
     //col.r += (1.- 1. * step(0.05,fract(pavedUv.x)));
     //col.r += (1.- 1. * step(0.05,fract(pavedUv.y)));
-    gl_FragColor = vec4(col, 1.);
+    Color = vec4(col, 1.);
 }

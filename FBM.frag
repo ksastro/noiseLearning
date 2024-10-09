@@ -1,9 +1,9 @@
-#ifdef GL_ES
+#version 300 es
 precision mediump float;
-#endif
 
 uniform vec2 u_resolution;
 uniform float u_time;
+out vec4 Color;
 const float ITERATION_LIMIT = 101.;
 const float BACKGROUNG_ID = 0.;
 const float SPHERE_ID = 1.;
@@ -148,5 +148,5 @@ void main()
     //col = paletteRainbow(.7*sin(4.*d) - t*.3);
     // Output to screen
     //col *= f/4.;
-    gl_FragColor = vec4(col, 1.);
+    Color = vec4(col, 1.);
 }

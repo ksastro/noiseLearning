@@ -1,9 +1,9 @@
-#ifdef GL_ES
+#version 300 es
 precision mediump float;
-#endif
 
 uniform vec2 u_resolution;
 uniform float u_time;
+out vec4 Color;
 
 
 void main()
@@ -13,5 +13,5 @@ void main()
     //uv.x = fract((1.+2.*0.*sin(t))*uv.x)*2.-1.;    //paving
     //uv.y = 2.*uv.y;
     vec3 col = vec3(0.,0.,.0);
-    gl_FragColor = vec4(col, 1.);
+    Color = vec4(col, 1.);
 }

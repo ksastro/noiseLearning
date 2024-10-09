@@ -1,9 +1,9 @@
-#ifdef GL_ES
+#version 300 es
 precision mediump float;
-#endif
 
 uniform vec2 u_resolution;
 uniform float u_time;
+out vec4 Color;
 const int NOISE_ITERATION_LIMIT = 7;
 
 mat2 rotate2d(float _angle){
@@ -100,5 +100,5 @@ void main(){
     }
     noiseValue = (noiseValue + 1.)*.5; //map to (0,1) from (-1,1)
     col = vec3(0.5*noiseValue, noiseValue, noiseValue);
-    gl_FragColor = vec4(col, 1.);
+    Color = vec4(col, 1.);
 }

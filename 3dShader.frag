@@ -1,7 +1,7 @@
-#ifdef GL_ES
+#version 300 es
 precision mediump float;
-#endif
 
+out vec4 Color;
 uniform vec2 u_resolution;
 uniform float u_time;
 const float ITERATION_LIMIT = 11001.;
@@ -145,5 +145,5 @@ void main()
     //col = paletteRainbow(.7*sin(4.*d) - t*.3);
     // Output to screen
     //col *= f/4.;
-    gl_FragColor = vec4(col, 1.);
+    Color = vec4(col, 1.);
 }
