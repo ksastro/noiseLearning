@@ -4,13 +4,22 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
-const vec3 PATTERN_SHIFT = vec3(1252534.,943675.,715713.);
+const vec3 PATTERN_SHIFT = vec3(1252534.,9675.,715713.);
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
     vec3 b = vec3(0.5, 0.5, 0.5);
     vec3 c = vec3(1.0, 1.0, 1.0);
     vec3 d = vec3(0.0,0.33,0.67);
+
+    return a + b*cos( 6.28318*(c*t+d) );
+}
+
+vec3 paletteCyan( float t ) {
+    vec3 a = vec3(0., 0.7, 0.7);
+    vec3 b = vec3(0., 0.25, 0.25);
+    vec3 c = vec3(.5, .5, 0.25);
+    vec3 d = vec3(0.5,0.5,- 0.25);
 
     return a + b*cos( 6.28318*(c*t+d) );
 }
@@ -56,7 +65,7 @@ vec3 hashVec3(in vec3 seed){
     return hashTrice / float(0xffffffffu);
 }
 
-vec3 voronoi2d(vec2 position){ //.xy is closest voronoi2d gridcell, .z is the distance to it
+vec3 voronoi2d(vec2 position){ //.xy is the closest voronoi2d gridcell, .z is the distance to it
     vec2 cellOrigin = floor(position); //cell where position is
     vec2 positionRelative = fract(position);
     vec2 cellOffset;    //Offset to the cell that is currently being calculated
@@ -64,54 +73,67 @@ vec3 voronoi2d(vec2 position){ //.xy is closest voronoi2d gridcell, .z is the di
     float dist;
     vec3 result = vec3 (0.,0.,1000.);
     for(float x = -2.; x <= 1. ; x++){
-        for(float y = -2.; y <= 1.; y++){
-            cellOffset = vec2(x,y);
-            pointOffset = cellOffset + hashVec2(cellOffset + cellOrigin);
-            dist = length(positionRelative - pointOffset);
-            if (dist < result.z) (result = vec3(cellOffset,dist));
-        }
+    for(float y = -2.; y <= 1.; y++){
+        cellOffset = vec2(x,y);
+        pointOffset = cellOffset + hashVec2(cellOffset + cellOrigin);
+        dist = length(positionRelative - pointOffset);
+        if (dist < result.z) (result = vec3(cellOffset,dist));
+    }
     }
     return result;
 }
 
-vec4 voronoi3d(vec3 position){ //.xy is closest voronoi2d gridcell, .z is the distance to it
+vec4 voronoi3d(vec3 position){ //.xyz is the closest voronoi3d gridcell, .w is the distance to it
     vec3 cellOrigin = floor(position); //cell where position is
     vec3 positionRelative = fract(position);
     vec3 cellOffset;    //Offset to the cell that is currently being calculated
     vec3 pointOffset;   //Offset to the voronoi2d point in current cell
     float dist;
-    vec4 result = vec4 (0., 0.,0.,1000.);
-    for(float x = -2.; x <= 1. ; x++){
-        for(float y = -2.; y <= 1.; y++){
-            for(float z = -2.; z <= 1.; z++){
-            cellOffset = vec3(x,y,z);
-            pointOffset = cellOffset + hashVec3(cellOffset + cellOrigin);
-            dist = length(positionRelative - pointOffset);
-            if (dist < result.w) (result = vec4(cellOffset,dist));
-            }
-        }
+    vec4 result = vec4 (0., 0., 0., 1000.);
+    for(float x = -2.; x <= 2. ; x++){
+    for(float y = -2.; y <= 2.; y++){
+    for(float z = -2.; z <= 2.; z++){
+        cellOffset = vec3(x,y,z);
+        pointOffset = cellOffset + hashVec3(cellOffset + cellOrigin);
+        dist = length(positionRelative - pointOffset);
+        if (dist < result.w) (result = vec4(cellOffset + cellOrigin,dist));
+    }
+    }
     }
     return result;
 }
 
-
-
 void main()
 {
-    float t = u_time * .5; //anim speed
+    float t = u_time * 0.3; //anim speed
     vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/u_resolution.y;
     vec3 col = vec3(0.,0.,.0);
-    uv *= 5.;
+    uv *= 4.;
     vec2 pavedUv = fract(uv);
-    vec4 voronoi3d = voronoi3d(vec3(uv,t));
-    float dist;
+    vec4 voronoi3d = voronoi3d(vec3(uv+vec2(0.2*t),t));
+    float dist = voronoi3d.w;;
     //dist = 0.3*exp(-voronoi3d.w * voronoi3d.w);
-    dist = voronoi3d.w;
-    //dist = sin(1. * 3.1415 * dist);
+    
+    //dist = sin(13. * 3.1415 * dist);
     //col = paletteBlueMagenta(12.*dist);
-    col = vec3(0.,dist,dist+0.5);
+    //col = vec3(0.,dist,dist+0.5);
     //col += vec3(1. - voronoi3d.z);
-    //col.r += (1.- 1. * step(0.05,fract(pavedUv.x)));
-    //col.r += (1.- 1. * step(0.05,fract(pavedUv.y)));
+
+    
+    //col = paletteRainbow(1.);
+    
+    //col = paletteRainbow(hashVec3(voronoi3d.xyz).x);
+    //col *= smoothstep(0.,0.8,dist);
+
+    //col = paletteRainbow(.43);
+    //col = paletteBlueMagenta(1.*dist);
+    col = paletteCyan(1.*dist);
+    //col *= 0.2/dist;
+    
+    //col = paletteCyan(1.*dist);
+    col *= 1.1*dist;
+    //if(dist < 0.1) col.r += 0.5;
+    //col.r += (1.- 1. * step(0.04,fract(pavedUv.x)));
+    //col.r += (1.- 1. * step(0.04,fract(pavedUv.y)));
     Color = vec4(col, 1.);
 }

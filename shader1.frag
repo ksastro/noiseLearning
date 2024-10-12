@@ -43,7 +43,7 @@ void main()
     //uv -= 0.3*vec2(cos(5.*t),sin(5.*t));  //floating center
     float d = length(uv)*.7;
     
-    d -= .4;     //centralized on ring
+    //d -= .4;     //centralized on ring
     //d -= .1 * sin(t);    //center ring ocsilation
     d = abs(d);
     float d0 = d;

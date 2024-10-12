@@ -23,7 +23,7 @@ vec3 paletteBlueMagenta( float t ) {
     vec3 d = vec3(.5,0.,0.);
 
     return a + b*cos( 6.28318*(c*t+d) );
-} 
+}
 
 struct Ray{
     vec3 origin;
