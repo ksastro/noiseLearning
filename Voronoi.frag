@@ -112,7 +112,7 @@ void main()
     vec2 pavedUv = fract(uv);
     vec4 voronoi3d = voronoi3d(vec3(uv+vec2(0.2*t),t));
     float dist = voronoi3d.w;;
-    //dist = 0.3*exp(-voronoi3d.w * voronoi3d.w);
+    dist = 0.3*exp(-voronoi3d.w * voronoi3d.w);
     
     //dist = sin(13. * 3.1415 * dist);
     //col = paletteBlueMagenta(12.*dist);
@@ -128,10 +128,12 @@ void main()
     //col = paletteRainbow(.43);
     //col = paletteBlueMagenta(1.*dist);
     col = paletteCyan(1.*dist);
-    //col *= 0.2/dist;
+    
+    
+    col *= 0.2/dist;
     
     //col = paletteCyan(1.*dist);
-    col *= 1.1*dist;
+    //col *= 1.1*dist;
     //if(dist < 0.1) col.r += 0.5;
     //col.r += (1.- 1. * step(0.04,fract(pavedUv.x)));
     //col.r += (1.- 1. * step(0.04,fract(pavedUv.y)));

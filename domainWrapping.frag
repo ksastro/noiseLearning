@@ -147,9 +147,16 @@ void main(){
     //uv.x = fract(5.*(uv.x))*2.-1.;    //paving
     //uv.y = 5.*uv.y;
     float noiseValue = 0.;
+    vec2 noiseVec2 = vec2(0.);
     vec3 col = vec3(0.,0.,.0);
-    noiseValue = fbm(1., uv);
+    noiseVec2 = fbm2d(1., uv);
+    for(int i = 0; i < 2; i++){
+        noiseVec2 = fbm2d(1., uv + noiseVec2 + vec2(t));
+    }
+    noiseValue = fbm(1., uv + noiseVec2);
+    //noiseValue = fbm(1., uv);
     noiseValue = (noiseValue + 1.)*.5; //map to (0,1) from (-1,1)
-    col = vec3(0.5*noiseValue, noiseValue, noiseValue);
+    //col = vec3(0.5*noiseValue, noiseValue, noiseValue);
+    col = paletteBrownish(noiseValue);
     Color = vec4(col, 1.);
 }
