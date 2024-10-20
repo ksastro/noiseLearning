@@ -54,15 +54,15 @@ uint hashUint (in uint seed){ //murmur type of hash from https://t.ly/bKdP7
     return seed;
 }
 
-float hashFloat2d(in vec2 seed){
+float hashFloat(in vec2 seed){
     uint hashX = hashUint(uint(seed.x + PATTERN_SHIFT.x));
     uint hashXY = hashUint(hashX + uint(seed.y + PATTERN_SHIFT.y));
     return float(hashXY) / float(0xFFFFFFFFU);
 }
 
 vec2 hashVec2Unit(in vec2 seed){
-    float hashAngle = 2.*3.1415*hashFloat2d(seed);
-    return (rotate2d (hashAngle) * vec2(1.,0.));
+    float hashAngle = 2.*3.1415*hashFloat(seed);
+    return vec2(cos(hashAngle),sin(hashAngle));
 }
 
 float singleCornerNoise2d (vec2 gridCorner, vec2 point){      

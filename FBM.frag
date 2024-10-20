@@ -9,6 +9,8 @@ const float BACKGROUNG_ID = 0.;
 const float SPHERE_ID = 1.;
 const float PLANE_ID = 2.;
 const float BOX_ID = 3.;
+const int NOISE_ITERATION_LIMIT = 7;
+const vec3 PATTERN_SHIFT = vec3(15234.,943675.,715713.);
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
@@ -26,10 +28,6 @@ vec3 paletteBlueMagenta( float t ) {
     vec3 d = vec3(.5,0.,0.);
 
     return a + b*cos( 6.28318*(c*t+d) );
-} 
-
-int simpleHash(int x) {
-    return x * 1108675245 + 12345;
 }
 
 struct Ray{
@@ -74,9 +72,59 @@ vec2 AddObjects (vec2 firstObject, vec2 secondObject){
     if (firstObject.x < secondObject.x) {return firstObject;}
     return secondObject;
 }
+float opSmoothUnion( float d1, float d2, float k )
+{
+    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1. );
+    return mix( d2, d1, h ) - k*h*(1.-h);
+}
+float opSmoothIntersection( float d1, float d2, float k )
+{
+    float h = clamp( 0.5 - 0.5*(d2-d1)/k, 0.0, 1. );
+    return mix( d2, d1, h ) + k*h*(1.-h);
+}
 
 vec3 Paving (vec3 position){
     return 10.*fract(.1*(position))-vec3(5.);
+}
+
+uint hashUint (in uint seed)    //murmur type of hash from https://t.ly/bKdP7
+{ 
+    seed ^= seed >> 17;
+    seed *= 0xed5ad4bbU;
+    seed ^= seed >> 11;
+    seed *= 0xac4c1b51U;
+    seed ^= seed >> 15;
+    seed *= 0x31848babU;
+    seed ^= seed >> 14;
+    return seed;
+}
+uvec2 hashUint(in uvec2 seed)
+{
+    return uvec2(hashUint(seed.x),hashUint(seed.y));
+}
+uvec3 hashUint(in uvec3 seed)
+{
+    return uvec3(hashUint(seed.x),hashUint(seed.y),hashUint(seed.z));
+}
+float hashFloat(in float seed)  //(0,1) RNG
+{ 
+    uint hash = hashUint(uint(seed + PATTERN_SHIFT.x)); 
+    return float(hash) / float(0xffffffffu);
+}
+float hashFloat(in vec2 seed)
+{
+    seed += PATTERN_SHIFT.xy;
+    uint hashX = hashUint(uint(seed.x));
+    uint hashXY = hashUint(hashX + uint(seed.y));
+    return float(hashXY) / float(0xffffffffu);
+}
+float hashFloat(in vec3 seed)
+{
+    seed += PATTERN_SHIFT.xyz;
+    uint hashX = hashUint(uint(seed.x));
+    uint hashXY = hashUint(hashX + uint(seed.y));
+    uint hashXYZ = hashUint(hashXY + uint(seed.z));
+    return float(hashXYZ) / float(0xffffffffu);
 }
 
 mat2 rotate2d(float _angle){
@@ -84,18 +132,42 @@ mat2 rotate2d(float _angle){
                 sin(_angle),cos(_angle));
 }
 
+float sdFbmStep (float frequency, float amplitude, vec3 position){
+    float result = 100.;
+    position *= frequency;
+    vec3 originID = floor(position);
+    vec3 positionRelative = fract(position);    //position relative to current cell origin
+    float radius;
+    float dist;
+    for(int x = -1; x <= 1; x++){
+    for(int y = -1; y <= 1; y++){
+    for(int z = -1; z <= 1; z++){
+        vec3 cellOffset = vec3(x,y,z);
+        radius = amplitude * hashFloat(originID + cellOffset);
+        dist = sdSphere(positionRelative - cellOffset + vec3(0.5), radius);
+        if (dist < result) result = dist;
+    }
+    }
+    }
+    return result;
+}
+
+float sdFbm (vec3 position){
+    return 0.;
+}
+
 vec2 map (vec3 position){
     vec2 result;
     vec3 rotatedPosition = vec3(rotate2d(.5*u_time)*position.xy,position.z);
     vec3 spherePosition = Paving(position + vec3(5.0, 0., 5.)) - vec3(0.,0.,0.);
-    vec2 sphere = vec2(sdSphere(spherePosition, float(simpleHash(int(position.x)))/1000000000.), SPHERE_ID);
-    vec3 planePosition = (position - vec3(0.,-15.,0.));
+    vec2 sphere = vec2(sdSphere(spherePosition, hashFloat(spherePosition)), SPHERE_ID);
+    vec3 planePosition = (position - vec3(0., -1., 0.));
     vec2 plane = vec2(sdPlane(planePosition), PLANE_ID);
-    vec3 boxPosition = Paving (vec3(position + vec3(5.+cos(2.*u_time),5.+sin(2.*u_time), 5.)));
-    vec2 box = vec2(sdBox(boxPosition,vec3(1.)), BOX_ID);
+    vec2 fbm = vec2(sdFbmStep(1.,.25,position), SPHERE_ID);
     result = sphere;
-    //result = plane;
+    result = plane;
     result = AddObjects(result, sphere);
+    result = vec2(max(plane.x, fbm.x),SPHERE_ID);
     //result = AddObjects(result, box);
 
     return result;
@@ -141,7 +213,7 @@ void main()
     }
     col = GetColor(ray.position,surfaceId);
 
-    col *= softShadow (ray.position, lightDirection,.1,10.,4.);
+    col *= softShadow (ray.position, lightDirection,.1,10.,16.);
 
     //col = vec3(I);
     //col = paletteRainbow(2.*d0 - t*.7);
