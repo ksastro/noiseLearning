@@ -33,7 +33,8 @@ vec3 paletteCyan( float t ) {
     return a + b*cos( 6.28318*(c*t+d) );
 }
 
-uint hashUint (in uint seed){ //murmur type of hash from https://t.ly/bKdP7
+uint hashUint (in uint seed)
+{ //murmur type of hash from https://t.ly/bKdP7
     seed ^= seed >> 17;
     seed *= 0xed5ad4bbU;
     seed ^= seed >> 11;
@@ -43,10 +44,12 @@ uint hashUint (in uint seed){ //murmur type of hash from https://t.ly/bKdP7
     seed ^= seed >> 14;
     return seed;
 }
-uvec2 hashUint(in uvec2 seed){
+uvec2 hashUint(in uvec2 seed)
+{
     return uvec2(hashUint(seed.x),hashUint(seed.y));
 }
-uvec3 hashUint(in uvec3 seed){
+uvec3 hashUint(in uvec3 seed)
+{
     return uvec3(hashUint(seed.x),hashUint(seed.y),hashUint(seed.z));
 }
 

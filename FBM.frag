@@ -9,8 +9,8 @@ const float BACKGROUNG_ID = 0.;
 const float SPHERE_ID = 1.;
 const float PLANE_ID = 2.;
 const float BOX_ID = 3.;
-const int NOISE_ITERATION_LIMIT = 1;
-const vec3 PATTERN_SHIFT = vec3(15234.,943675.,715713.);
+const int NOISE_ITERATION_LIMIT = 2;
+const vec3 PATTERN_SHIFT = vec3(15234.432,943675.23,715713.632);
 
 vec3 paletteRainbow( float t ) {
     vec3 a = vec3(0.5, 0.5, 0.5);
@@ -49,23 +49,6 @@ float sdBox( vec3 position, vec3 size )
 {
   vec3 q = abs(position) - size;
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-}
-
-vec3 GetColor(vec3 position, float surfaceId){
-    vec3 color = vec3(0.4667, 0.0, 0.7137);
-    if (surfaceId == 2.) {
-        
-        color = vec3(0.0784, 0.102, 0.3373);
-        }
-    if (surfaceId == SPHERE_ID) {
-        color  = paletteBlueMagenta(1./50.);
-        //color = vec3(0.8353, 0.0314, 0.502);
-        }
-    if (surfaceId == 3.) {
-        color  = paletteBlueMagenta(1./50.);
-        color = vec3(0.8353, 0.0314, 0.502);
-        }
-    return color;
 }
 
 vec2 AddObjects (vec2 firstObject, vec2 secondObject)
@@ -128,19 +111,22 @@ float hashFloat(in vec3 seed)
     return float(hashXYZ) / float(0xffffffffu);
 }
 
-mat2 rotate2d(float _angle){
+mat2 rotate2d(float _angle)
+{
     return mat2(cos(_angle),-sin(_angle),
                 sin(_angle),cos(_angle));
 }
 
-float sdFbmStep (float frequency, float amplitude, vec3 position){
+float sdFbmStep (float frequency, float amplitude, vec3 position)
+{
     float result = 100.;
     position *= frequency;
     vec3 originID = floor(position);            //ID of the cell, in which position is
     vec3 positionRelative = fract(position);    //position relative to current cell origin
     //baseID is the ID of a max(xyz) cell where the closest sphere can be
     vec3 baseShift = vec3(positionRelative.x>0.5, positionRelative.y>0.5, positionRelative.z>0.5);
-    vec3 baseID = originID + baseShift;
+    vec3 baseID = originID + baseShift;         //for sphereOffset to equal baseSheft + cellOffset
+    baseShift = baseShift + vec3(0.5) - positionRelative;
     vec3 sphereOffset;
     float radius;
     float dist;
@@ -149,7 +135,7 @@ float sdFbmStep (float frequency, float amplitude, vec3 position){
     for(int z = -1; z < 1; z++){
         vec3 cellOffset = vec3(x,y,z);
         radius = amplitude * hashFloat(baseID + cellOffset);
-        sphereOffset = baseShift + cellOffset - positionRelative + vec3(0.5);
+        sphereOffset = baseShift + cellOffset;
         dist = sdSphere(sphereOffset, radius);
         if (dist < result) result = dist;
     }
@@ -161,24 +147,27 @@ float sdFbmStep (float frequency, float amplitude, vec3 position){
 float sdFbm (float base, vec3 position)
 {
     float result = base;
-    float amplitude = 1.;
-    float frequency = 1.;
+    float amplitude = 2.;
+    float frequency = .5;
     for (int i = 0; i < NOISE_ITERATION_LIMIT; i++){
-        result = opSmoothIntersection(result, sdFbmStep(frequency, amplitude, position), 0.1);
+        result = opSmoothIntersection(result, sdFbmStep(frequency, amplitude, position), amplitude);
         amplitude *= 0.5;
         frequency *= 2.;
+        position += PATTERN_SHIFT;
+        position.xz = rotate2d(10.)*position.xz;
     }
     return result;
 }
 
-vec2 map (vec3 position){
+vec2 map (vec3 position)
+{
     vec2 result;
-    vec3 rotatedPosition = vec3(rotate2d(.5*u_time)*position.xy,position.z);
-    vec3 spherePosition = Paving(position + vec3(5.0, 0., 5.)) - vec3(0.,0.,0.);
-    vec2 sphere = vec2(sdSphere(spherePosition, hashFloat(spherePosition)), SPHERE_ID);
-    vec3 planePosition = (position - vec3(0., -1., 0.));
+    //vec3 rotatedPosition = vec3(rotate2d(.5*u_time)*position.xy,position.z);
+    //vec3 spherePosition = Paving(position + vec3(5.0, 0., 5.)) - vec3(0.,0.,0.);
+    //vec2 sphere = vec2(sdSphere(spherePosition, hashFloat(spherePosition)), SPHERE_ID);
+    vec3 planePosition = (position - vec3(0., -3., 0.));
     vec2 plane = vec2(sdPlane(planePosition), PLANE_ID);
-    vec2 fbm = vec2(sdFbmStep(1.,1.,position), SPHERE_ID);
+    //vec2 fbm = vec2(sdFbmStep(1.,1.,position), SPHERE_ID);
     result = vec2(sdFbm(plane.x, position),SPHERE_ID);
     //result = plane;
     //result = fbm;
@@ -203,6 +192,26 @@ float softShadow( in vec3 ro, in vec3 rd, float mint, float maxt, float k )
         if (t>maxt) break;
     }
     return res;
+}
+
+
+vec3 GetColor(vec3 position, float surfaceId)
+{
+    vec3 color = vec3(0.4667, 0.0, 0.7137);
+    if (surfaceId == 2.) {
+        
+        color = vec3(0.0784, 0.102, 0.3373);
+        }
+    if (surfaceId == SPHERE_ID) {
+        color  = paletteBlueMagenta(1./50.);
+        color = vec3(0.5);
+        //color = vec3(0.8353, 0.0314, 0.502);
+        }
+    if (surfaceId == 3.) {
+        color  = paletteBlueMagenta(1./50.);
+        color = vec3(0.8353, 0.0314, 0.502);
+        }
+    return color;
 }
 
 void main()
