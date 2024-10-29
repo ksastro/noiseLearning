@@ -5,7 +5,7 @@ uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
 const float ITERATION_LIMIT = 100.;
-const int NOISE_ITERATION_LIMIT = 4;
+const int NOISE_ITERATION_LIMIT = 6;
 const float ID_BACKGROUND = 0.;
 const float ID_GROUND = -1.;
 const float ID_SPHERE = 1.;
