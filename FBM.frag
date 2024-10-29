@@ -4,12 +4,13 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
-const float ITERATION_LIMIT = 100.;
+const float ITERATION_LIMIT = 100\
+0.;
 const float BACKGROUNG_ID = 0.;
 const float SPHERE_ID = 1.;
 const float PLANE_ID = 2.;
 const float BOX_ID = 3.;
-const int NOISE_ITERATION_LIMIT = 2;
+const int NOISE_ITERATION_LIMIT = 1;
 const vec3 PATTERN_SHIFT = vec3(15234.432,943675.23,715713.632);
 
 vec3 paletteRainbow( float t ) {
@@ -165,12 +166,14 @@ vec2 map (vec3 position)
     //vec3 rotatedPosition = vec3(rotate2d(.5*u_time)*position.xy,position.z);
     //vec3 spherePosition = Paving(position + vec3(5.0, 0., 5.)) - vec3(0.,0.,0.);
     //vec2 sphere = vec2(sdSphere(spherePosition, hashFloat(spherePosition)), SPHERE_ID);
+    vec2 sphere = vec2(sdSphere(position - vec3(0.), 1.5), SPHERE_ID);
     vec3 planePosition = (position - vec3(0., -3., 0.));
     vec2 plane = vec2(sdPlane(planePosition), PLANE_ID);
-    //vec2 fbm = vec2(sdFbmStep(1.,1.,position), SPHERE_ID);
+    vec2 fbm = vec2(sdFbmStep(1.,1.,position), SPHERE_ID);
     result = vec2(sdFbm(plane.x, position),SPHERE_ID);
     //result = plane;
     //result = fbm;
+    //result = sphere;
     //result = AddObjects(result, sphere);
     //result = vec2(opSmoothIntersection(plane.x, fbm.x, .5),SPHERE_ID);
     //result = AddObjects(result, box);
@@ -194,18 +197,35 @@ float softShadow( in vec3 ro, in vec3 rd, float mint, float maxt, float k )
     return res;
 }
 
+vec3 calcNormalTetrahedron( in vec3 position )
+{
+    const float h = .00001; // replace by an appropriate value
+    const vec2 k = vec2(1,-1);
+    return normalize( k.xyy*map( position + k.xyy*h ).x + 
+                      k.yyx*map( position + k.yyx*h ).x + 
+                      k.yxy*map( position + k.yxy*h ).x + 
+                      k.xxx*map( position + k.xxx*h ).x );
+}
+
+vec3 calcLightning (in vec3 position, in vec3 lightDirection, in vec3 lightColor){
+    vec3 normal = calcNormalTetrahedron(position);
+    float amplitude = dot(normal,lightDirection);
+    return amplitude * lightColor;
+}
 
 vec3 GetColor(vec3 position, float surfaceId)
 {
+    vec3 lightDirection = normalize(vec3(1.,1.,-1.));
     vec3 color = vec3(0.4667, 0.0, 0.7137);
     if (surfaceId == 2.) {
         
         color = vec3(0.0784, 0.102, 0.3373);
         }
     if (surfaceId == SPHERE_ID) {
-        color  = paletteBlueMagenta(1./50.);
-        color = vec3(0.5);
+        //color  = paletteBlueMagenta(1./50.);
+        //color = vec3(0.5);
         //color = vec3(0.8353, 0.0314, 0.502);
+        color = calcLightning(position, lightDirection, vec3(0.5));
         }
     if (surfaceId == 3.) {
         color  = paletteBlueMagenta(1./50.);
@@ -237,13 +257,14 @@ void main()
         if (ray.length > 45000.) { break;}
     }
     col = GetColor(ray.position,surfaceId);
-
-    col *= softShadow (ray.position, lightDirection,.1,10.,16.);
+    //col = calcLightning(ray.position, lightDirection, vec3(0.5));
+    //col *= softShadow (ray.position, lightDirection,.1,10.,16.);
 
     //col = vec3(I);
     //col = paletteRainbow(2.*d0 - t*.7);
     //col = paletteRainbow(.7*sin(4.*d) - t*.3);
     // Output to screen
     //col *= f/4.;
+    col = pow(col, vec3(1./2.2));
     Color = vec4(col, 1.);
 }
