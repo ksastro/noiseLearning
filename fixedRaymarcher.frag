@@ -4,8 +4,8 @@ precision mediump float;
 uniform vec2 u_resolution;
 uniform float u_time;
 out vec4 Color;
-const float ITERATION_LIMIT = 100.;
-const int NOISE_ITERATION_LIMIT = 6;
+const float ITERATION_LIMIT = 200.;
+const int NOISE_ITERATION_LIMIT = 11;
 const float ID_BACKGROUND = 0.;
 const float ID_GROUND = -1.;
 const float ID_SPHERE = 1.;
@@ -52,25 +52,6 @@ float sdBox( vec3 position, vec3 size ){
   return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
 }
 
-vec3 GetColor(vec3 position, float surfaceId){
-    vec3 color = vec3(0.4667, 0.0, 0.7137);
-    if (surfaceId == ID_PLANE) {
-        
-        color = vec3(0.0784, 0.102, 0.3373);
-        }
-    if (surfaceId == ID_SPHERE) {
-        color  = paletteBlueMagenta(1./50.);
-        //color = vec3(0.8353, 0.0314, 0.502);
-        }
-    if (surfaceId == ID_BOX) {
-        color = vec3(0.8353, 0.0314, 0.502);
-        }
-    if (surfaceId == ID_GROUND) {
-        color = (position.y+5.) * vec3(0.2078, 0.1725, 0.1059);
-        }
-    return color;
-}
-
 vec2 AddObjects (vec2 firstObject, vec2 secondObject){
     if (firstObject.x < secondObject.x) {return firstObject;}
     return secondObject;
@@ -95,8 +76,8 @@ vec2 sdfMap (vec3 position){
     vec3 boxPosition = Paving (vec3(position + vec3(5.+cos(2.*u_time),5.+sin(2.*u_time), 5.)));
     vec2 box = vec2(sdBox(boxPosition,vec3(1.)),ID_BOX);
     result = sphere;
-    //result = plane;
-    result = AddObjects(result, sphere);
+    result = plane;
+    //result = AddObjects(result, sphere);
     //result = AddObjects(result, box);
 
     return result;
@@ -175,40 +156,41 @@ float noise2d(in vec2 uv, float frequency){
     return (lerp(bottom, top, fract(uv.y)));
 }
 
-vec2 zMap(vec3 position){       //.x is relative height, .y is surfaceID
+vec2 zMap(vec2 positionXZ){       //.x is height a that xz point, .y is surfaceID
     vec2 result = vec2(0., ID_GROUND);
-    result.x = -2.;
+    result.x = 0.;
     float noiseValue = 0.;
     float amplitude = 2.;
     float frequency = 1.;
     float angle = 0.;
     for(int i = 0; i < NOISE_ITERATION_LIMIT; i++){
-        noiseValue += amplitude*noise2d(position.xz, frequency);
+        noiseValue += amplitude*noise2d(positionXZ, frequency);
         amplitude *= 0.5;
         frequency *= 2.;
-        //position.xz += rotate2d(angle)*vec2(position.xz);
+        //positionXZ += rotate2d(angle)*positionXZ;
         //angle += 2.*3.1415/float(NOISE_ITERATION_LIMIT);
     }
     result.x += 1.* noiseValue;
-    result.x = position.y - result.x;
+    //result.x = position.y - result.x;
     return result;
 }
 
 vec2 expRaymarch(Ray ray){      //.x is ray length, .y is surfaceID
     
     vec2 result = vec2(0.,ID_BACKGROUND);
-    float stepsize = .01;
+    float stepsize = .001;
     vec2 h;
     float isExpanding = 1.;
 
     for(float i = 0.; i < ITERATION_LIMIT; i++){
-        
-        h = zMap(ray.origin + result.x * ray.direction);
-        if (abs(h.x) < 0.01) {result.y = h.y; break;}
+        ray.position = ray.origin + result.x * ray.direction;
+        h = zMap(ray.position.xz);
+        h.x = ray.position.y - h.x;
+        if (abs(h.x) < 0.001) {result.y = h.y; break;}
         if (result.x > 1000.) {result.y = ID_BACKGROUND; break;}
         if (h.x < 0.) {isExpanding = -1.;}
         if (isExpanding == -1.) stepsize *= 0.5;
-        if (isExpanding == 1.) stepsize += 0.01;
+        if (isExpanding == 1.) stepsize += 0.001;
         //stepsize *= 1.25 + (1.-0.25)*isExpanding; 
         result.x += sign(h.x) * stepsize;
         //if (h.x > 0.) {stepsize *= 2.; result.x +=stepsize;}
@@ -233,6 +215,52 @@ float softShadow( in vec3 ro, in vec3 rd, float mint, float maxt, float k ){
     return res;
 }
 
+vec3 calcNormalTetrahedron( in vec3 position )
+{
+    const float h = .00001; // replace by an appropriate value
+    const vec2 k = vec2(1,-1);
+    return normalize( k.xyy*sdfMap( position + k.xyy*h ).x + 
+                      k.yyx*sdfMap( position + k.yyx*h ).x + 
+                      k.yxy*sdfMap( position + k.yxy*h ).x + 
+                      k.xxx*sdfMap( position + k.xxx*h ).x );
+}
+
+vec3 calcNormalZMap (in vec2 position){
+    const float eps = 0.0001;   // replace by an appropriate value
+    const vec2 h = vec2(eps,0);
+    return normalize( vec3( zMap(position-h.xy).x - zMap(position+h.xy).x,
+                            2.0*h.x,
+                            zMap(position-h.yx).x - zMap(position+h.yx).x ) );
+}
+
+vec3 calcLightning (in vec3 position, in vec3 lightDirection, in vec3 lightColor, in float id){
+    float type = float(id < 0.);     //1 if we are at zMap terrain, 0 if we are at sdf object
+    vec3 normal = (1. - type)*calcNormalTetrahedron(position) + type * calcNormalZMap(position.xz);
+    float amplitude = dot(normal,lightDirection);
+    return amplitude * lightColor;
+}
+
+vec3 GetColor(vec3 position, float surfaceId){
+    vec3 color = vec3(0.4667, 0.0, 0.7137);
+    vec3 lightDirection = normalize(vec3(1.,1.,-1.));
+    if (surfaceId == ID_PLANE) {
+        
+        color = vec3(0.0784, 0.102, 0.3373);
+        }
+    if (surfaceId == ID_SPHERE) {
+        color  = paletteBlueMagenta(1./50.);
+        //color = vec3(0.8353, 0.0314, 0.502);
+        }
+    if (surfaceId == ID_BOX) {
+        color = vec3(0.8353, 0.0314, 0.502);
+        }
+    if (surfaceId == ID_GROUND) {
+        color = calcLightning(position, lightDirection, vec3(0.3176, 0.2549, 0.0235), surfaceId)
+        ;
+        }
+    return color;
+}
+
 void main()
 {
     float t = u_time * 2.; //anim speed
@@ -242,7 +270,7 @@ void main()
     vec3 col = vec3(0.,0.,.0);
     vec3 lightDirection = normalize(vec3(1.,1.,-1.));
     Ray ray;
-    ray.origin = vec3(0.,0.,-3.);
+    ray.origin = vec3(-0.07-0.01*t,0.2,11.5);
     ray.direction = normalize(vec3(uv,1.));
     ray.length = 0.;
     ray.position = ray.origin;

@@ -10,7 +10,7 @@ const float BACKGROUNG_ID = 0.;
 const float SPHERE_ID = 1.;
 const float PLANE_ID = 2.;
 const float BOX_ID = 3.;
-const int NOISE_ITERATION_LIMIT = 1;
+const int NOISE_ITERATION_LIMIT = 2;
 const vec3 PATTERN_SHIFT = vec3(15234.432,943675.23,715713.632);
 
 vec3 paletteRainbow( float t ) {
@@ -148,10 +148,16 @@ float sdFbmStep (float frequency, float amplitude, vec3 position)
 float sdFbm (float base, vec3 position)
 {
     float result = base;
-    float amplitude = 2.;
+    float wave;
+    float amplitude = 1.;
     float frequency = .5;
     for (int i = 0; i < NOISE_ITERATION_LIMIT; i++){
-        result = opSmoothIntersection(result, sdFbmStep(frequency, amplitude, position), amplitude);
+        //result = opSmoothUnion(opSmoothIntersection(result, sdFbmStep(frequency, amplitude, position), amplitude),result, 1.5);
+        wave = sdFbmStep(frequency, amplitude, position);
+        wave = opSmoothIntersection(result - .0*amplitude, wave, 0.4*amplitude); //clamping new layer
+        
+        result = opSmoothUnion(result, wave, 0.4*amplitude);    //adding new layer
+        //result = wave;
         amplitude *= 0.5;
         frequency *= 2.;
         position += PATTERN_SHIFT;
@@ -167,7 +173,7 @@ vec2 map (vec3 position)
     //vec3 spherePosition = Paving(position + vec3(5.0, 0., 5.)) - vec3(0.,0.,0.);
     //vec2 sphere = vec2(sdSphere(spherePosition, hashFloat(spherePosition)), SPHERE_ID);
     vec2 sphere = vec2(sdSphere(position - vec3(0.), 1.5), SPHERE_ID);
-    vec3 planePosition = (position - vec3(0., -3., 0.));
+    vec3 planePosition = (position - vec3(0., 0., 0.));
     vec2 plane = vec2(sdPlane(planePosition), PLANE_ID);
     vec2 fbm = vec2(sdFbmStep(1.,1.,position), SPHERE_ID);
     result = vec2(sdFbm(plane.x, position),SPHERE_ID);
@@ -243,7 +249,7 @@ void main()
     vec3 col = vec3(0.,0.,.0);
     vec3 lightDirection = normalize(vec3(1.,1.,-1.));
     Ray ray;
-    ray.origin = vec3(0.,0.,-3.);
+    ray.origin = vec3(0.,0.9,0.);
     ray.direction = normalize(vec3(uv,1.));
     ray.length = 0.;
     ray.position = ray.origin;
