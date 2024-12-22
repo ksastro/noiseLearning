@@ -224,11 +224,12 @@ void main()
     float t = u_time * 0.3; //anim speed
     vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/u_resolution.y;
     vec3 col = vec3(0.);
-    vec4 voronoi3d = voronoi3d(vec3(4.*uv,t));
-    float dist = voronoi3d.w;;
+    vec4 voronoi = voronoi3d(vec3(4.*uv,t));
+    voronoi = voronoi3d(vec3(4.*uv, u_time));
+    float dist = voronoi.w;;
     //dist = 1.2*exp(-voronoi3d.w * voronoi3d.w);
-    vec2 cellStep = hashVec3(voronoi3d.xyz).xy;
-    uv += cellStep;
+    //vec2 cellStep = hashVec3(voronoi3d.xyz).xy;
+    //uv += cellStep;
 
     
     //dist = sin(10. * 3.1415 * dist);

@@ -11,6 +11,8 @@ const float ID_GROUND = -1.;
 const float ID_SPHERE = 1.;
 const float ID_PLANE = 2.;
 const float ID_BOX = 3.;
+const float ID_WATER = 4.;
+const vec3 PATTERN_SHIFT = vec3(184.1562,975.8283,713.5243);
 
 
 
@@ -21,7 +23,16 @@ vec3 paletteRainbow( float t ) {
     vec3 d = vec3(0.0,0.33,0.67);
 
     return a + b*cos( 6.28318*(c*t+d) );
-}   
+}  
+
+vec3 paletteWater( float t ) {
+    vec3 a = vec3(0.5, 0.5, 0.5);
+    vec3 b = vec3(0.5, 0.5, 0.5);
+    vec3 c = vec3(1.0, 1.0, 1.0);
+    vec3 d = vec3(0.0, 0.2, 0.3);
+
+    return a + b*cos( 6.28318*(c*t+d) );
+}
 
 vec3 paletteBlueMagenta( float t ) {
     vec3 a = vec3(0.6, 0., 0.8);
@@ -31,6 +42,15 @@ vec3 paletteBlueMagenta( float t ) {
 
     return a + b*cos( 6.28318*(c*t+d) );
 } 
+vec3 paletteCyan( float t ) 
+{
+    vec3 a = vec3(0., 0.7, 0.7);
+    vec3 b = vec3(0., 0.25, 0.25);
+    vec3 c = vec3(.5, .5, 0.25);
+    vec3 d = vec3(0.5,0.5,- 0.25);
+
+    return a + b*cos( 6.28318*(c*t+d) );
+}
 
 struct Ray{
     vec3 origin;
@@ -108,14 +128,30 @@ vec2 hash2dUnitVector(vec2 gridCorner){
     + 1928. * sin(167.17* gridCorner.y * gridCorner.y ) + .0*u_time + .0*cos(u_time));
     return (rotate2d (hashAngle) * vec2(1.,0.));
 }
+uint hashUint (in uint seed)    //murmur type of hash from https://t.ly/bKdP7
+{ 
+    seed ^= seed >> 17;
+    seed *= 0xed5ad4bbU;
+    seed ^= seed >> 11;
+    seed *= 0xac4c1b51U;
+    seed ^= seed >> 15;
+    seed *= 0x31848babU;
+    seed ^= seed >> 14;
+    return seed;
+}
+uvec3 hashUint(in uvec3 seed)
+{
+    return uvec3(hashUint(seed.x),hashUint(seed.y),hashUint(seed.z));
+}
 
-/*vec3 hash3d(vec3 gridCorner){
-    float hashAngle = 2.*3.14*fract(6421.234*sin(156512.35* gridCorner.x * gridCorner.x + 2389.) 
-    + 138.283*cos(49824.+167840.17 * gridCorner.y *gridCorner.x) 
-    + 1928. * sin(167.17* gridCorner.y * gridCorner.y )
-    + 138.283*cos(49824.+167840.17 * gridCorner.z *gridCorner.z));
-    return (rotate2d (hashAngle) * vec2(1.,0.));
-}*/
+vec3 hashVec3(in vec3 seed)
+{
+    uvec3 uintSeed = uvec3(seed + PATTERN_SHIFT.xyz);
+    uvec3 hashOnce = hashUint(uintSeed);
+    uvec3 hashTwice = hashUint(hashOnce + uintSeed.yzx);
+    vec3 hashTrice = vec3(hashUint(hashTwice + uintSeed.zxy));
+    return hashTrice / float(0xffffffffu);
+}
 
 float singleCornerNoise2d (vec2 gridCorner, vec2 point){      
     float res;
@@ -170,7 +206,10 @@ vec2 zMap(vec2 positionXZ){       //.x is height a that xz point, .y is surfaceI
         //positionXZ += rotate2d(angle)*positionXZ;
         //angle += 2.*3.1415/float(NOISE_ITERATION_LIMIT);
     }
-    result.x += 1.* noiseValue;
+    float globalAmp = 0.6;
+    result.x += globalAmp * noiseValue;
+    float seaLevel = - globalAmp * 0.3;
+    if (result.x < seaLevel) {result.x = seaLevel; result.y = ID_WATER; }
     //result.x = position.y - result.x;
     return result;
 }
@@ -178,7 +217,7 @@ vec2 zMap(vec2 positionXZ){       //.x is height a that xz point, .y is surfaceI
 vec2 expRaymarch(Ray ray){      //.x is ray length, .y is surfaceID
     
     vec2 result = vec2(0.,ID_BACKGROUND);
-    float stepsize = .001;
+    float stepsize = .01;
     vec2 h;
     float isExpanding = 1.;
 
@@ -190,7 +229,7 @@ vec2 expRaymarch(Ray ray){      //.x is ray length, .y is surfaceID
         if (result.x > 1000.) {result.y = ID_BACKGROUND; break;}
         if (h.x < 0.) {isExpanding = -1.;}
         if (isExpanding == -1.) stepsize *= 0.5;
-        if (isExpanding == 1.) stepsize += 0.001;
+        if (isExpanding == 1.) stepsize += 0.0001;
         //stepsize *= 1.25 + (1.-0.25)*isExpanding; 
         result.x += sign(h.x) * stepsize;
         //if (h.x > 0.) {stepsize *= 2.; result.x +=stepsize;}
@@ -225,26 +264,63 @@ vec3 calcNormalTetrahedron( in vec3 position )
                       k.xxx*sdfMap( position + k.xxx*h ).x );
 }
 
-vec3 calcNormalZMap (in vec2 position){
-    const float eps = 0.0001;   // replace by an appropriate value
-    const vec2 h = vec2(eps,0);
+vec3 calcNormalZMap (in Ray ray){
+    float eps = 0.01 * ray.length;   // replace by an appropriate value
+    vec2 h = vec2(eps,0);
+    vec2 position = ray.position.xz;
     return normalize( vec3( zMap(position-h.xy).x - zMap(position+h.xy).x,
                             2.0*h.x,
                             zMap(position-h.yx).x - zMap(position+h.yx).x ) );
 }
 
-vec3 calcLightning (in vec3 position, in vec3 lightDirection, in vec3 lightColor, in float id){
+vec3 calcLightning (in Ray ray, in vec3 lightDirection, in vec3 lightColor, in float id){
     float type = float(id < 0.);     //1 if we are at zMap terrain, 0 if we are at sdf object
-    vec3 normal = (1. - type)*calcNormalTetrahedron(position) + type * calcNormalZMap(position.xz);
+    vec3 position = ray.position;
+    vec3 normal = (1. - type)*calcNormalTetrahedron(position) + type * calcNormalZMap(ray);
     float amplitude = dot(normal,lightDirection);
     return amplitude * lightColor;
 }
 
-vec3 GetColor(vec3 position, float surfaceId){
-    vec3 color = vec3(0.4667, 0.0, 0.7137);
-    vec3 lightDirection = normalize(vec3(1.,1.,-1.));
+vec3 background(vec2 uv){
+    vec3 downColor = vec3(0.8863, 0.2078, 0.0196);
+    vec3 upColor = vec3(0.0196, 0.1098, 0.1686);
+    uv.y = (uv.y + 1.) * 0.5;
+    vec3 color = uv.y * upColor + (1. - uv.y) * downColor;
+    return color;
+}
+vec4 voronoi3d(vec3 position)   //.xyz is the closest voronoi3d gridcell, .w is the distance to it
+{ 
+    vec3 cellOrigin = floor(position); //cell where position is
+    vec3 positionRelative = fract(position);
+    vec3 cellOffset;    //Offset to the cell that is currently being calculated
+    vec3 pointOffset;   //Offset to the voronoi2d point in current cell
+    float dist;
+    vec4 result = vec4 (0., 0., 0., 1000.);
+    for(float x = -2.; x <= 2. ; x++){
+    for(float y = -2.; y <= 2.; y++){
+    for(float z = -2.; z <= 2.; z++){
+        cellOffset = vec3(x,y,z);
+        pointOffset = cellOffset + hashVec3(cellOffset + cellOrigin);
+        dist = length(positionRelative - pointOffset);
+        if (dist < result.w) (result = vec4(cellOffset + cellOrigin,dist));
+    }
+    }
+    }
+    return result;
+}
+vec3 water (vec3 xyt){
+    vec4 voronoi = voronoi3d(vec3(32.*xyt.xy, 0.3 * xyt.z));
+    float dist = voronoi.w;;
+    vec3 col = paletteWater(0.1*dist+.35);
+    return col;
+}
+vec3 GetColor(Ray ray, float surfaceId, vec2 uv){
+    vec3 color = vec3(0);
+    vec3 position = ray.position; 
+    if (surfaceId == ID_BACKGROUND) {
+        color = background(uv);
+        }
     if (surfaceId == ID_PLANE) {
-        
         color = vec3(0.0784, 0.102, 0.3373);
         }
     if (surfaceId == ID_SPHERE) {
@@ -254,12 +330,20 @@ vec3 GetColor(vec3 position, float surfaceId){
     if (surfaceId == ID_BOX) {
         color = vec3(0.8353, 0.0314, 0.502);
         }
+    vec3 lightDirection1 = normalize(vec3(1.,1.,-1.));
+    vec3 lightDirection2 = normalize(vec3(-1.,1.,0.));
     if (surfaceId == ID_GROUND) {
-        color = calcLightning(position, lightDirection, vec3(0.3176, 0.2549, 0.0235), surfaceId)
-        ;
+        vec3 color1 = calcLightning(ray, lightDirection1, vec3(0.3176, 0.2549, 0.0235), surfaceId);
+        vec3 color2 = .3 * calcLightning(ray, lightDirection2, vec3(0.3176, 0.2549, 0.0235), surfaceId);
+        color = color1 + color2;
+        }
+    if (surfaceId == ID_WATER) {
+        color = water(vec3(position.xz, 0));
         }
     return color;
 }
+
+
 
 void main()
 {
@@ -270,7 +354,8 @@ void main()
     vec3 col = vec3(0.,0.,.0);
     vec3 lightDirection = normalize(vec3(1.,1.,-1.));
     Ray ray;
-    ray.origin = vec3(-0.07-0.01*t,0.2,11.5);
+    ray.origin = vec3(-0.2-0.0*t,-0.0,9.);
+    //ray.origin.xz = rotate2d(0.1*t)*ray.origin.xz; 
     ray.direction = normalize(vec3(uv,1.));
     ray.length = 0.;
     ray.position = ray.origin;
@@ -281,7 +366,7 @@ void main()
     //raymarchResult = expResult;
     ray.length = raymarchResult.x;
     ray.position = ray.origin + ray.direction * ray.length;
-    col = GetColor(ray.position,raymarchResult.y);
+    col = GetColor(ray,raymarchResult.y,uv);
     //col *= softShadow (ray.position, lightDirection,.1,10.,10.);
 
     //col = vec3(I);

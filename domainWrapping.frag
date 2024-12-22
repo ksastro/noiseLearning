@@ -163,6 +163,6 @@ void main(){
     //noiseValue = fbm(1., uv);
     noiseValue = (noiseValue + 1.)*.5; //map to (0,1) from (-1,1)
     //col = vec3(0.5*noiseValue, noiseValue, noiseValue);
-    col = paletteBrownish(noiseValue);
+    col = paletteCyan(noiseValue);
     Color = vec4(col, 1.);
 }
