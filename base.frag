@@ -116,6 +116,11 @@ vec3 hashVec3(in vec3 seed)
     return hashTrice / float(0xffffffffu);
 }
 
+float sdCircle( vec2 p, float r )
+{
+    return length(p) - r;
+}
+
 struct Ray
 {
     vec3 origin;
