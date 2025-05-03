@@ -47,6 +47,7 @@ vec3 paletteCyan( float t ) {
 
 uint hashUint (in uint seed)    //murmur type of hash from https://t.ly/bKdP7
 { 
+    seed += 0x9e3779b9U;
     seed ^= seed >> 17;
     seed *= 0xed5ad4bbU;
     seed ^= seed >> 11;

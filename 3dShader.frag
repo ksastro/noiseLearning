@@ -73,7 +73,7 @@ vec2 AddObjects (vec2 firstObject, vec2 secondObject){
 }
 
 vec3 Paving (vec3 position){
-    return 10.*fract(.1*(position))-vec3(5.);
+    return 10.*fract(.1*(position)) - vec3(5);
 }
 
 mat2 rotate2d(float _angle){
@@ -83,16 +83,18 @@ mat2 rotate2d(float _angle){
 
 vec2 map (vec3 position){
     vec2 result;
+    //position *= 2.;
     vec3 rotatedPosition = vec3(rotate2d(.5*u_time)*position.xy,position.z);
-    vec3 spherePosition = Paving(rotatedPosition + vec3(5.0,5.+1.5*u_time,5.-3.*u_time)) - vec3(0.,0.,0.);
-    vec2 sphere = vec2(sdSphere(spherePosition, 1.), ID_SPHERE);
-    vec3 planePosition = (position - vec3(0.,-15.,0.));
-    vec2 plane = vec2(sdPlane(planePosition), ID_PLANE);
-    vec3 boxPosition = Paving (vec3(position + vec3(5.+cos(2.*u_time),5.+sin(2.*u_time), 5.)));
-    vec2 box = vec2(sdBox(boxPosition,vec3(1.)),ID_BOX);
+    //vec3 spherePosition = Paving(rotatedPosition + vec3(5.0,5.+1.5*u_time,5.-3.*u_time)) - vec3(0.,0.,0.);
+    vec3 spherePosition = Paving(position) + vec3(0);
+    vec2 sphere = vec2(sdSphere(spherePosition, .25), ID_SPHERE);
+    //vec3 planePosition = (position - vec3(0.,-15.,0.));
+    //vec2 plane = vec2(sdPlane(planePosition), ID_PLANE);
+    //vec3 boxPosition = Paving (vec3(position + vec3(5.+cos(2.*u_time),5.+sin(2.*u_time), 5.)));
+    //vec2 box = vec2(sdBox(boxPosition,vec3(1.)),ID_BOX);
     result = sphere;
     //result = plane;
-    result = AddObjects(result, sphere);
+    //result = AddObjects(result, sphere);
     //result = AddObjects(result, box);
 
     return result;
@@ -123,7 +125,7 @@ void main()
     vec3 col = vec3(0.,0.,.0);
     vec3 lightDirection = normalize(vec3(1.,1.,-1.));
     Ray ray;
-    ray.origin = vec3(0.,0.,-3.);
+    ray.origin = vec3(1.5,1.5,-2.);
     ray.direction = normalize(vec3(uv,1.));
     ray.length = 0.;
     ray.position = ray.origin;
@@ -138,7 +140,7 @@ void main()
     }
     col = GetColor(ray.position,surfaceId);
 
-    col *= softShadow (ray.position, lightDirection,.1,10.,4.);
+    //col *= softShadow (ray.position, lightDirection,.1,10.,4.);
 
     //col = vec3(I);
     //col = paletteRainbow(2.*d0 - t*.7);

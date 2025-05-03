@@ -72,7 +72,7 @@ vec2 sdf (in vec2 p){
     p = gridUV(p0, 12., 0.);
     p1 = squareBorder(1.3*t);
     p2 = squareBorder(1.3*t + 2.);
-    vec2 sdSegment4 = vec2(sdSegment(p, p1, p2), 4.);
+    vec2 sdSegment4 = vec2(sdSegment(p, p1, p2) * .75, 4.);
     result = AddObjects(result,sdSegment4);
 
     p = gridUV(p0, 3., 0.);
@@ -89,16 +89,19 @@ vec2 sdf (in vec2 p){
 }
 
 
-vec2 caleidoscopeSquare (in vec2 uv){
-    uv = fract (uv * 5.);
-    return uv;
+mat2 rotate2d(float _angle){
+    return mat2(cos(_angle),-sin(_angle),
+                sin(_angle),cos(_angle));
 }
 
 void main()
 {
     float t = u_time * 2.; //anim speed
     vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/u_resolution.y;
-
+    uv*=0.3;
+    //uv+=vec2(2);
+    //uv = rotate2d(0.06)*uv;
+    uv.y = uv.y *( log(abs(uv.x/3.)+0.1));
     
     
     vec2 SDF = sdf(uv);
@@ -109,6 +112,15 @@ void main()
     if (SDF.y == 4.) col = vec3(0.0863, 0.8, 0.6706);
     if (SDF.y == 5.) col = vec3(0.5608, 0.0784, 0.6667);
     if (SDF.y == 6.) col = vec3(0.8235, 0.5569, 0.0941);
-    float amplitude = step(0.98, 1.-SDF.x);
+
+
+    float amplitude = 1.;
+    
+    amplitude = 5.*SDF.x;
+    //amplitude = clamp(1.*SDF.x,0.7,10.);
+    //amplitude = 2.*(.5-SDF.x);
+    //amplitude = step(0.98, 1.-SDF.x);
+    
+    col *= amplitude;
     Color = vec4(amplitude * col, 1.);
 }
