@@ -96,6 +96,7 @@ void main()
 {
     float t = u_time * .1; //anim speed
     vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/u_resolution.y;
+    //uv+=vec2(100,5);
     float scale = 4.;
     uv *= scale;
 

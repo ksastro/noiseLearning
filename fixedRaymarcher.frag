@@ -305,7 +305,7 @@ void main()
     vec3 col = vec3(0.,0.,.0);
     vec3 lightDirection = normalize(vec3(1.,1.,-1.));
     Ray ray;
-    ray.origin = vec3(-0.2-0.0*t,-0.0,9.);
+    ray.origin = vec3(-0.2-0.05*t,0.2,9.);
 
     ray.direction = normalize(vec3(uv,1.));
     ray.length = 0.;

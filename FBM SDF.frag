@@ -14,6 +14,7 @@ const float LAKE_LEVEL = 0.02;
 const float ITERATION_LIMIT = 1000.;
 const int NOISE_ITERATION_LIMIT = 1;
 const float MAX_DIST = 10.;
+const float MIN_DIST = 0.001;
 const float BIG_NUMBER = 1234.5678;
 
 const float PI = 3.14159265;
@@ -21,22 +22,6 @@ const float TWO_PI = 6.28318531;
 
 const vec3 PATTERN_SHIFT = vec3(134.432,475.23,713.632);
 
-vec3 paletteRainbow( float t ) {
-    vec3 a = vec3(0.5, 0.5, 0.5);
-    vec3 b = vec3(0.5, 0.5, 0.5);
-    vec3 c = vec3(1.0, 1.0, 1.0);
-    vec3 d = vec3(0.0,0.33,0.67);
-
-    return a + b*cos( 6.28318*(c*t+d) );
-}   
-vec3 paletteBlueMagenta( float t ) {
-    vec3 a = vec3(0.6, 0., 0.8);
-    vec3 b = vec3(0.4, 0., 0.2);
-    vec3 c = vec3(.5, .0, .5);
-    vec3 d = vec3(.5,0.,0.);
-
-    return a + b*cos( 6.28318*(c*t+d) );
-}
 vec3 HSVtoRGB (vec3 hsv){
     float r, g, b;
 	
@@ -71,64 +56,28 @@ struct Ray{
     float surfaceID;
 };
 
-float sdSphere( in vec3 position, in vec3 center, in float radius)
-{
+float sdSphere( in vec3 position, in vec3 center, in float radius){
   return length(position - center) - radius;
 }
-float sdPlane( vec3 p )
-{
+float sdPlane( vec3 p ){
 	return p.y;
 }
-float sdBox( vec3 position, vec3 size )
-{
-  vec3 q = abs(position) - size;
-  return length(max(q,0.0)) + min(max(q.x,max(q.y,q.z)),0.0);
-}
 
-vec2 AddObjects (vec2 firstObject, vec2 secondObject)
-{
+vec2 AddObjects (vec2 firstObject, vec2 secondObject){
     if (firstObject.x < secondObject.x) {return firstObject;}
     return secondObject;
 }
-/*float opSmoothUnion( float d1, float d2, float k )
-{
-    float h = clamp( 0.5 + 0.5*(d2-d1)/k, 0.0, 1. );
-    return mix( d2, d1, h ) - k*h*(1.-h);
-}
-float opSmoothIntersection( float d1, float d2, float k )
-{
-    float h = clamp( 0.5 - 0.5*(d2-d1)/k, 0.0, 1. );
-    return mix( d2, d1, h ) + k*h*(1.-h);
-}*/
-
 // circular
-float opSmoothUnion( float d1, float d2, float k )
-{
+float opSmoothUnion( float d1, float d2, float k ){
     float h = max(k-abs(d1-d2),0.0);
     return min(d1, d2) - h*h*0.25/k;
 }
-float opSmoothIntersection( float d1, float d2, float k )   
-{
+float opSmoothIntersection( float d1, float d2, float k ){
     float h = max(k-abs(d1-d2),0.0);
     return max(d1, d2) + h*h*0.25/k;
 }
 
-//exponential
-/*float opSmoothUnion( float d1, float d2, float k )
-{
-    float r = exp2(-d1/k) + exp2(-d2/k);
-    return -k*log2(r);
-}
-float opSmoothIntersection( float d1, float d2, float k )
-{
-    float r = exp(d1/k) + exp(d2/k);
-    return k*log(r);
-}*/
-
-
-
-uint hashUint (in uint seed)    //murmur type of hash from https://t.ly/bKdP7
-{ 
+uint hashUint (in uint seed){    //murmur type of hash from https://t.ly/bKdP7 
     seed += 0x9e3779b9U;
     seed ^= seed >> 17;
     seed *= 0xed5ad4bbU;
@@ -139,28 +88,7 @@ uint hashUint (in uint seed)    //murmur type of hash from https://t.ly/bKdP7
     seed ^= seed >> 14;
     return seed;
 }
-uvec2 hashUint(in uvec2 seed)
-{
-    return uvec2(hashUint(seed.x),hashUint(seed.y));
-}
-uvec3 hashUint(in uvec3 seed)
-{
-    return uvec3(hashUint(seed.x),hashUint(seed.y),hashUint(seed.z));
-}
-float hashFloat(in float seed)  //(0,1) RNG
-{ 
-    uint hash = hashUint(uint(seed + PATTERN_SHIFT.x)); 
-    return float(hash) / float(0xffffffffu);
-}
-float hashFloat(in vec2 seed)
-{
-    seed += PATTERN_SHIFT.xy;
-    uint hashX = hashUint(uint(seed.x));
-    uint hashXY = hashUint(hashX + uint(seed.y));
-    return float(hashXY) / float(0xffffffffu);
-}
-float hashFloat(in vec3 seed)
-{
+float hashFloat(in vec3 seed){
     seed += PATTERN_SHIFT.xyz;
     uint hashX = hashUint(uint(seed.x));
     uint hashXY = hashUint(hashX + uint(seed.y));
@@ -168,15 +96,13 @@ float hashFloat(in vec3 seed)
     return float(hashXYZ) / float(0xffffffffu);
 }
 
-mat2 rotate2d(float _angle)
-{
+mat2 rotate2d(float _angle){
     return mat2(cos(_angle),-sin(_angle),
                 sin(_angle),cos(_angle));
 }
 
 
-float sdFbmStep (in float frequency, in vec3 position, in float pixelWidth)
-{
+float sdFbmStep (in float frequency, in vec3 position, in float pixelWidth){
     float result = BIG_NUMBER;    //just a big number
     position *= frequency;
     vec3 cellID = floor(position);            //ID of the cell, in which position is
@@ -198,8 +124,7 @@ float sdFbmStep (in float frequency, in vec3 position, in float pixelWidth)
     }
     return result;
 }
-float sdFbm (in float base, in vec3 position, in float pixelWidth) //pixelWidth is the size of the pixel in world-space
-{
+float sdFbm (in float base, in vec3 position, in float pixelWidth){ //pixelWidth is the size of the pixel in world-space
     float result = base;
     float wave;
     float frequency = 1.;
@@ -242,8 +167,7 @@ vec2 sdFbmLODReturn (in float base, in vec3 position, in float pixelWidth){
     return result;
 }
 
-vec2 map (vec3 position, float pixelWidth)
-{
+vec2 map (vec3 position, float pixelWidth){
     vec2 result;
     vec3 planePosition = (position - vec3(0., 0., 0.));
     float terrainBase = sdPlane(planePosition);
@@ -254,8 +178,7 @@ vec2 map (vec3 position, float pixelWidth)
     result = AddObjects(result, lake);
     return result;
 }
-vec2 mapWithoutWater (vec3 position, float pixelWidth)
-{
+vec2 mapWithoutWater (vec3 position, float pixelWidth){
     vec2 result;
     vec3 planePosition = (position - vec3(0., 0., 0.));
     float terrainBase = sdPlane(planePosition);
@@ -274,9 +197,10 @@ void raymarchSdf(inout Ray ray){
 
     for(float i = 0.; i < ITERATION_LIMIT; i++){
         sd = map(ray.position, ray.footprint);
-        //ray.surfaceID = sd.y;
-        if (sd.x < 0.01 * ray.footprint) {ray.surfaceID = sd.y; break;}
-        propagateRay(ray, sd.x * 1.2);
+        float minDist = 1. * ray.footprint;
+        //minDist = MIN_DIST;
+        if (sd.x < minDist) {propagateRay(ray, sd.x - minDist); ray.surfaceID = sd.y; break;}
+        propagateRay(ray, sd.x * 1.);
         if (ray.length == MAX_DIST) {ray.surfaceID = ID_BACKGROUND; break;}
     }
     
@@ -286,15 +210,13 @@ void raymarchSdfWithoutWater(inout Ray ray){
 
     for(float i = 0.; i < ITERATION_LIMIT; i++){
         sd = mapWithoutWater(ray.position, ray.footprint);
-        //ray.surfaceID = sd.y;
-        if (sd.x < 0.01 * ray.footprint) {ray.surfaceID = sd.y; break;}
+        if (sd.x < 1. * ray.footprint) {ray.surfaceID = sd.y; break;}
         propagateRay(ray, sd.x * 1.2);
         if (ray.length == MAX_DIST) {ray.surfaceID = ID_BACKGROUND; break;}
     }
 }
 
-float softShadow( in vec3 ro, in vec3 rd, float k )
-{
+float softShadow( in vec3 ro, in vec3 rd, float k ){
     float res = 1.0;
     float t = 0.1;
     for( float i = 0.; (i < ITERATION_LIMIT); i++ )
@@ -308,8 +230,7 @@ float softShadow( in vec3 ro, in vec3 rd, float k )
     }
     return res;
 }
-vec3 applyFog( in vec3 pixelColor, in Ray ray, in vec3  sunDirection )
-{
+vec3 applyFog( in vec3 pixelColor, in Ray ray, in vec3  sunDirection ){
     float fogDensity = 0.05;
     float fogAmount = 1.0 - exp(-ray.length * fogDensity);
     float sunAmount = max( dot(ray.direction, sunDirection), 0.0 );
@@ -318,21 +239,18 @@ vec3 applyFog( in vec3 pixelColor, in Ray ray, in vec3  sunDirection )
                            pow(sunAmount,8.0) );
     return mix( pixelColor, fogColor, fogAmount );
 }
-vec3 refVector( in vec3 v, in vec3 n )
-{
+vec3 refVector( in vec3 v, in vec3 n ){
     float k = dot(v,n);
     return (k>0.0) ? v : v-2.0*n*k;
 }
-Ray reflectRay(in Ray ray, in vec3 normal)
-{
+Ray reflectRay(in Ray ray, in vec3 normal){
     ray.origin = ray.position;
     ray.direction = ray.direction - 2. * normal * dot(ray.direction, normal);
     ray.length = 0.;
     return ray;
 }
-vec3 calcNormalTetrahedron(in vec3 position, in float pixelWidth)
-{
-    vec2 k = vec2(1,-1) * 1. * pixelWidth;
+vec3 calcNormalTetrahedron(in vec3 position, in float pixelWidth){
+    vec2 k = vec2(1,-1) * 1.1 * pixelWidth;
     return normalize( k.xyy*map(position + k.xyy, pixelWidth).x + 
                       k.yyx*map(position + k.yyx, pixelWidth).x + 
                       k.yxy*map(position + k.yxy, pixelWidth).x + 
@@ -347,28 +265,24 @@ vec3 calcNormalTetrahedronFiltered(in vec3 position, in float pixelWidth){
     return result;
 }
 vec3 getNormal(in Ray ray){
+    vec3 normal;
     if (ray.surfaceID == ID_LAKES) {
         return vec3(0,1,0);
         float amp = 0.00002;
         float freq = 1000.;
         float width = 100.*ray.footprint / abs(ray.direction.y);
         //return normalize(vec3(0,1,-amp * freq * cos(freq * ray.position.z)));
-        return normalize(vec3(0,1,-amp * freq * cos(freq * ray.position.z) * sin(width) / width) );
+        normal = normalize(vec3(0,1,-amp * freq * cos(freq * ray.position.z) * sin(width) / width) );
     }
-    return calcNormalTetrahedron(ray.position, ray.footprint);
+    if (ray.surfaceID != ID_LAKES) normal = calcNormalTetrahedron(ray.position, ray.footprint);
+    return refVector (normal, -ray.direction);
+    return normal;
 }
 vec3 calcLightning (in vec3 position, in vec3 normal, in vec3 lightDirection, in vec3 lightColor){
     float amplitude = dot(normal,lightDirection);
     amplitude += 0.25 * (dFdx(amplitude) + dFdy(amplitude));
     amplitude *= softShadow(position, lightDirection, 16.);
     return amplitude * lightColor;
-}
-vec3 backgroundColor(vec2 uv){
-    vec3 downColor = vec3(0.8863, 0.2078, 0.0196);
-    vec3 upColor = vec3(0.0196, 0.1098, 0.1686);
-    uv.y = (uv.y + 1.) * 0.5;
-    vec3 color = uv.y * upColor + (1. - uv.y) * 2. * downColor;
-    return color;
 }
 vec3 GetMaterial(vec3 position, vec3 normal, float surfaceID){
     vec3 material = vec3(0.2);
@@ -378,8 +292,7 @@ vec3 GetMaterial(vec3 position, vec3 normal, float surfaceID){
     }
     return material;
 }
-vec3 GetColor(Ray ray, in vec3 sunDirection)
-{
+vec3 GetColor(Ray ray, in vec3 sunDirection){
     vec3 normal = getNormal(ray);
     vec3 sunColor = 1.25*HSVtoRGB(vec3(55.,100.,100.));     //vec3(0.9098, 0.8353, 0.0275)    
     vec3 skyLightDirection = normalize(vec3(0.,2.,0.));
@@ -406,8 +319,22 @@ vec3 GetColor(Ray ray, in vec3 sunDirection)
 
     return color;
 }
-vec3 processReflection(in Ray ray, in vec3 color, in vec3 normal, in vec3 sunDirection)
-{
+vec3 processReflection(in Ray ray, in vec3 color, in vec3 sunDirection){
+    float waveAmp = 0.00003;
+    float waveFreq = 1000.;
+    float width = ray.footprint / abs(normalize(vec2(ray.direction.z,ray.direction.y)).y);//pixel footprint on a water surface
+    float waveLength = TWO_PI / waveFreq;
+    vec3 normal;
+    
+
+    if(width < waveLength){
+        normal = normalize(vec3(0,1,-waveAmp * waveFreq * cos(waveFreq * ray.position.z) * sin(width) / width));
+    }
+    if(width >= waveLength){
+        normal = vec3(0,1,0);
+    }
+    
+
     //Schlick's approximation
     float refractionIndex = 1.333;
     float rZero = ((refractionIndex - 1.) * (refractionIndex - 1.)) / ((refractionIndex + 1.) * (refractionIndex + 1.));
@@ -421,17 +348,33 @@ vec3 processReflection(in Ray ray, in vec3 color, in vec3 normal, in vec3 sunDir
 }
 
 //3-Ray reflection for anti-aliasing
-vec3 processReflection3x(in Ray ray, in vec3 color, in vec3 sunDirection)
+//Stupid idea
+/*vec3 processReflection3x(in Ray ray, in vec3 color, in vec3 sunDirection)
 {
     vec3 normalMin;
     vec3 normalMid;
     vec3 normalMax;
+    float refractionIndex = 1.333;
+    float rZero = ((refractionIndex - 1.) * (refractionIndex - 1.)) / ((refractionIndex + 1.) * (refractionIndex + 1.));
+    vec3 reflectedColor;
 
     float amp = 0.00002;
     float freq = 1000.;
-    float width = ray.footprint / abs(ray.direction.y);
+    float width = ray.footprint / abs(normalize(vec2(ray.direction.z,ray.direction.y)).y);
+    
     
     normalMid = normalize(vec3(0,1,-amp * freq * cos(freq * ray.position.z) * sin(width) / width));
+    
+    float reflectionCoefficientMid = rZero + (1. - rZero) * pow((1. - abs(dot(ray.direction, normalMid))), 5.);
+    Ray reflectedRayMid = reflectRay(ray, normalMid);
+    raymarchSdfWithoutWater(reflectedRayMid);
+    vec3 reflectedColorMid = GetColor(reflectedRayMid, sunDirection);
+    reflectedColorMid = reflectionCoefficientMid * applyFog(reflectedColorMid, reflectedRayMid, sunDirection);
+
+    if (width < PI / (.5*freq)){
+        reflectedColor = reflectedColorMid / reflectionCoefficientMid;
+        return mix(color, reflectedColor, reflectionCoefficientMid);
+    }
     if (width > TWO_PI / freq){
         normalMin = normalize(vec3(0,1,-amp * freq));
         normalMax = normalize(vec3(0,1,amp * freq));
@@ -441,31 +384,27 @@ vec3 processReflection3x(in Ray ray, in vec3 color, in vec3 sunDirection)
         normalMax = normalize(vec3(0,1,-amp * freq * cos(freq * (ray.position.z + width * 0.5))));
     }
     //Schlick's approximation
-    float refractionIndex = 1.333;
-    float rZero = ((refractionIndex - 1.) * (refractionIndex - 1.)) / ((refractionIndex + 1.) * (refractionIndex + 1.));
+    
     float reflectionCoefficientMin = rZero + (1. - rZero) * pow((1. - abs(dot(ray.direction, normalMin))), 5.);
-    float reflectionCoefficientMid = rZero + (1. - rZero) * pow((1. - abs(dot(ray.direction, normalMid))), 5.);
     float reflectionCoefficientMax = rZero + (1. - rZero) * pow((1. - abs(dot(ray.direction, normalMax))), 5.);
     
     Ray reflectedRayMin = reflectRay(ray, normalMin);
-    Ray reflectedRayMid = reflectRay(ray, normalMid);
     Ray reflectedRayMax = reflectRay(ray, normalMax);
     raymarchSdfWithoutWater(reflectedRayMin);
-    raymarchSdfWithoutWater(reflectedRayMid);
     raymarchSdfWithoutWater(reflectedRayMax);
     vec3 reflectedColorMin = GetColor(reflectedRayMin, sunDirection);
-    vec3 reflectedColorMid = GetColor(reflectedRayMid, sunDirection);
     vec3 reflectedColorMax = GetColor(reflectedRayMax, sunDirection);
     reflectedColorMin = reflectionCoefficientMin * applyFog(reflectedColorMin, reflectedRayMin, sunDirection);
-    reflectedColorMid = reflectionCoefficientMid * applyFog(reflectedColorMid, reflectedRayMid, sunDirection);
     reflectedColorMax = reflectionCoefficientMax * applyFog(reflectedColorMax, reflectedRayMax, sunDirection);
-    float x = abs(dot(normalMin, normalMid))/abs(dot(normalMin, normalMax));
-    vec3 reflectedColor = 0.5 * (reflectedColorMin * (1. - x) + reflectedColorMid + reflectedColorMax * x);
+    float x = abs(dot(normalMin, normalMid))/abs(dot(normalMin, normalMax)); //relative position of mid
+    reflectedColor = 0.5 * (reflectedColorMin * (1. - x) + reflectedColorMid + reflectedColorMax * x) / (reflectionCoefficientMin + reflectionCoefficientMax + reflectionCoefficientMid);
     return mix(color, reflectedColor, reflectionCoefficientMid);
-}
+}*/
 
 void main()
 {
+    Color = vec4(1.);
+    //return;
     float t = u_time * 2.; //anim speed
     vec2 uv = (gl_FragCoord.xy * 2. - u_resolution.xy)/max(u_resolution.y, u_resolution.x);
 
@@ -489,7 +428,7 @@ void main()
     //normal = calcNormalTetrahedronFiltered(ray.position, ray.differential * ray.length);
     vec3 sunDirection = normalize(vec3(.25,.35,1.));
     col = GetColor(ray, sunDirection);
-    if(ray.surfaceID == ID_LAKES) col = processReflection3x(ray, col, sunDirection);
+    if(ray.surfaceID == ID_LAKES) col = processReflection(ray, col, sunDirection);
     col = applyFog(col, ray, sunDirection);
 
     //col = vec3(I);
